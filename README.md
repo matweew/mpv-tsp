@@ -45,7 +45,13 @@ dist/
 
 ## Running on the device
 
-Copy `dist/` to the SD card, e.g. as `/mnt/SDCARD/Apps/mpv/`, and run `launch.sh` with a file or URL:
+**Ready-made package:** download `mpv-tsp-<version>.zip` from the
+[latest release](../../releases/latest) and unpack it into `Apps/` on the SD card: it contains the
+`mpv/` folder (the same as `dist/` below, plus the licenses).
+
+**From your own build:** copy `dist/` to the SD card, e.g. as `/mnt/SDCARD/Apps/mpv/`.
+
+Then run `launch.sh` with a file or URL:
 
 ```bash
 scp -r dist/* root@<device-ip>:/mnt/SDCARD/Apps/mpv/
