@@ -185,4 +185,30 @@ else:
         f.write(f"\n# context_sdl.c added by patch_mpv.py\nsources += files('{sdl_path}')\n")
     print(f'[OK] Appended context_sdl.c to {target_meson}')
 
+# ── 6. Gamepad triggers: releasing L2/R2 must release the key ─────────────────
+# mpv maps trigger axes to keys, but treats values near 0 as noise and ignores them. The TrimUI's
+# L2/R2 are digital: they jump from full straight back to 0, so the release never arrived, the key
+# stayed down and auto-repeat ran its command ~40 times a second (a "seek 120" binding reached the
+# end of the video at once). For the triggers, below the activation threshold is a release.
+pad_path = os.path.join(MPV, 'input/sdl_gamepad.c')
+pad = open(pad_path).read()
+if 'TrimUI triggers' in pad:
+    print(f'[SKIP] {pad_path} already patched')
+else:
+    MARKER = '    // sometimes SDL just keeps shitting out low values around 0 that mess\n'
+    if MARKER not in pad:
+        sys.exit(f'ERROR: could not find the noise filter in {pad_path}')
+    pad = pad.replace(MARKER,
+        '    // TrimUI triggers: digital, from full straight back to 0 (below the noise threshold)\n'
+        '    if (sdl_key == SDL_CONTROLLER_AXIS_TRIGGERLEFT || sdl_key == SDL_CONTROLLER_AXIS_TRIGGERRIGHT) {\n'
+        '        int trigger_state = value >= sdl_axis_max - activation_threshold ? positive : positive_neutral;\n'
+        '        for (int i = 0; i < MP_ARRAY_SIZE(analog_map); i++) {\n'
+        '            if (analog_map[i][0] == sdl_key)\n'
+        '                return analog_map[i][trigger_state];\n'
+        '        }\n'
+        '        return INVALID_KEY;\n'
+        '    }\n\n' + MARKER, 1)
+    open(pad_path, 'w').write(pad)
+    print(f'[OK] Patched {pad_path}')
+
 print('Patch complete.')
