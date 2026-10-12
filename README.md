@@ -60,7 +60,8 @@ ssh root@<device-ip> /mnt/SDCARD/Apps/mpv/launch.sh /mnt/SDCARD/Videos/clip.mp4
 
 `launch.sh` sets the library path (`lib/`, then the device's SDL/EGL/GLES), fonts and certificates.
 `mpv.conf` selects `vo=gpu`, `gpu-context=sdl`, the hardware decoder with software fallback
-(`vd=h264_cedar,`), cheap scalers for the embedded GPU, and SDL audio. For YouTube, resolve the stream
+(`vd=h264_cedar,`), cheap scalers for the embedded GPU, SDL audio, and reconnecting network streams
+that drop or stall (FFmpeg `reconnect` with a 10 s socket `timeout`). For YouTube, resolve the stream
 URLs with [yt-dlp](https://github.com/yt-dlp/yt-dlp) and pass them to mpv (`--no-ytdl`; mpv's ytdl hook
 isn't set up here); WPE Browser does that for you.
 
