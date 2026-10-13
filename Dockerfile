@@ -40,6 +40,8 @@ RUN chmod +x /usr/local/bin/aarch64-linux-gnu-pkg-config
 COPY cross.ini /sdk/cross.ini
 COPY toolchain.cmake /sdk/toolchain.cmake
 COPY toolchain_sdl2.cmake /sdk/toolchain_sdl2.cmake
+# Each component's license files are kept with add-license.sh before its sources are deleted
+COPY add-license.sh /sdk/add-license.sh
 
 # Install missing .pc files for PowerVR EGL/GLES
 COPY pkgconfig/egl.pc $SYSROOT/lib/pkgconfig/egl.pc
@@ -60,6 +62,8 @@ RUN git clone --depth 1 --branch VER-2-13-2 https://github.com/freetype/freetype
         -DFT_DISABLE_BROTLI=ON && \
     cmake --build freetype-2.13.2/build -j$(nproc) && \
     cmake --install freetype-2.13.2/build --prefix $PREFIX && \
+    /sdk/add-license.sh freetype "FreeType 2.13.2" "FTL (FreeType License)" https://freetype.org/ \
+        freetype-2.13.2/LICENSE.TXT freetype-2.13.2/docs/FTL.TXT && \
     rm -rf freetype-2.13.2*
 
 # ===== 2. fribidi (bidirectional text for libass) =====
@@ -69,6 +73,7 @@ RUN wget -q https://github.com/fribidi/fribidi/releases/download/v1.0.13/fribidi
         -Ddocs=false -Dbin=false -Dtests=false && \
     meson compile -C builddir -j$(nproc) && \
     meson install -C builddir && \
+    /sdk/add-license.sh fribidi "FriBidi 1.0.13" LGPL-2.1-or-later https://github.com/fribidi/fribidi COPYING && \
     cd /build && rm -rf fribidi-1.0.13*
 
 # ===== 3. harfbuzz (text shaping for libass) =====
@@ -79,6 +84,7 @@ RUN wget -q https://github.com/harfbuzz/harfbuzz/releases/download/8.3.0/harfbuz
         -Dicu=disabled -Dtests=disabled -Dintrospection=disabled -Ddocs=disabled -Dbenchmark=disabled && \
     meson compile -C builddir -j$(nproc) && \
     meson install -C builddir && \
+    /sdk/add-license.sh harfbuzz "HarfBuzz 8.3.0" MIT https://harfbuzz.github.io/ COPYING && \
     cd /build && rm -rf harfbuzz-8.3.0*
 
 # ===== 4. libass (subtitle/OSD rendering, with fontconfig) =====
@@ -94,13 +100,19 @@ RUN mkdir -p $PREFIX/include/fontconfig && \
              -O $PREFIX/include/fontconfig/$hdr; \
     done && \
     printf 'prefix=%s\nexec_prefix=${prefix}\nlibdir=${exec_prefix}/lib\nincludedir=${prefix}/include\nName: Fontconfig\nDescription: Font configuration\nVersion: 2.13.1\nLibs: -L${libdir} -lfontconfig\nCflags: -I${includedir}\n' "$PREFIX" \
-        > $PREFIX/lib/pkgconfig/fontconfig.pc
+        > $PREFIX/lib/pkgconfig/fontconfig.pc && \
+    wget -q https://gitlab.freedesktop.org/fontconfig/fontconfig/-/raw/2.13.1/COPYING -O /tmp/COPYING && \
+    /sdk/add-license.sh fontconfig "fontconfig (libfontconfig.so.1 from the device firmware)" MIT-style \
+        https://www.freedesktop.org/wiki/Software/fontconfig/ /tmp/COPYING && rm /tmp/COPYING
 
 # Expat header
 RUN wget -q "https://github.com/libexpat/libexpat/raw/R_2_5_0/expat/lib/expat.h" \
          -O $PREFIX/include/expat.h && \
     wget -q "https://github.com/libexpat/libexpat/raw/R_2_5_0/expat/lib/expat_external.h" \
-         -O $PREFIX/include/expat_external.h
+         -O $PREFIX/include/expat_external.h && \
+    wget -q "https://github.com/libexpat/libexpat/raw/R_2_5_0/expat/COPYING" -O /tmp/COPYING && \
+    /sdk/add-license.sh expat "Expat (libexpat.so.1 from the device firmware)" MIT https://libexpat.github.io/ /tmp/COPYING && \
+    rm /tmp/COPYING
 
 RUN git clone --depth 1 --branch 0.17.1 https://github.com/libass/libass.git && \
     cd libass && \
@@ -120,6 +132,7 @@ RUN git clone --depth 1 --branch 0.17.1 https://github.com/libass/libass.git && 
         FONTCONFIG_LIBS="-L$PREFIX/lib -lfontconfig" && \
     make -j$(nproc) && \
     make install && \
+    /sdk/add-license.sh libass "libass 0.17.1" ISC https://github.com/libass/libass COPYING && \
     cd /build && rm -rf libass
 
 
@@ -133,6 +146,7 @@ RUN git clone --depth 1 --branch 1.3.0 https://github.com/videolan/dav1d.git && 
         -Denable_examples=false && \
     meson compile -C builddir -j$(nproc) && \
     meson install -C builddir && \
+    /sdk/add-license.sh dav1d "dav1d 1.3.0" BSD-2-Clause https://code.videolan.org/videolan/dav1d COPYING && \
     cd /build && rm -rf dav1d
 
 # ===== 6. libxml2 (required for DASH) =====
@@ -154,6 +168,7 @@ RUN wget -q https://download.gnome.org/sources/libxml2/2.10/libxml2-2.10.3.tar.x
         LIBS="-lz" && \
     make -j$(nproc) && \
     make install && \
+    /sdk/add-license.sh libxml2 "libxml2 2.10.3" MIT https://gitlab.gnome.org/GNOME/libxml2 Copyright && \
     cd /build && rm -rf libxml2-2.10.3*
 
 # ===== 7. OpenSSL 3.5 LTS (HTTPS streams in FFmpeg) =====
@@ -165,6 +180,7 @@ RUN wget -q https://github.com/openssl/openssl/releases/download/openssl-3.5.9/o
         no-tests no-docs shared && \
     make -j$(nproc) && \
     make install_sw && \
+    /sdk/add-license.sh openssl "OpenSSL 3.5.9" Apache-2.0 https://www.openssl.org/ LICENSE.txt && \
     cd /build && rm -rf openssl-3.5.9*
 
 # ===== 7b. libcedarc: Allwinner Cedar hardware video decoder (H.264) =====
@@ -193,6 +209,9 @@ RUN git clone https://github.com/CalvinXu17/libcedarc.git && cd libcedarc && \
     cp libVE.so libvideoengine.so libcwrapper.so liblogwrapper.so libawh264.so $PREFIX/lib/ && \
     python3 /sdk/cedar/fix-fini.py $PREFIX/lib/libVE.so && \
     mkdir -p $PREFIX/include/cedarc && cp /build/libcedarc/include/*.h $PREFIX/include/cedarc/ && \
+    /sdk/add-license.sh libcedarc "libcedarc (Allwinner Cedar video decoder), commit e68d4a7" \
+        "copyright Allwinner Technology, without a published license; the same library is part of TrimUI's firmware. The decoder framework (libvdecoder, libMemAdapter, libcdc_base) is built from source, libVE, libvideoengine, libcwrapper, liblogwrapper and libawh264 are prebuilt binaries of that repository" \
+        https://github.com/CalvinXu17/libcedarc && \
     cd /build && rm -rf libcedarc cedarc-out
 
 # ===== 8. FFmpeg 6.1 (with dav1d AV1 decoder, OpenSSL, libxml2, Cedar H.264 decoder) =====
@@ -221,6 +240,9 @@ RUN wget -q https://ffmpeg.org/releases/ffmpeg-6.1.tar.xz && \
         --enable-cedar && \
     make -j$(nproc) && \
     make install && \
+    /sdk/add-license.sh ffmpeg "FFmpeg 6.1, with the h264_cedar decoder (cedar/)" \
+        "LGPL-2.1-or-later (built without --enable-gpl and --enable-nonfree)" https://ffmpeg.org/ \
+        LICENSE.md COPYING.LGPLv2.1 && \
     cd /build && rm -rf ffmpeg-6.1*
 
 # ===== 9. SDL2 from GE8300 source (PowerVR-compatible) =====
@@ -270,6 +292,8 @@ RUN cmake -S /sdk/SDL2-2.26.1 -B /build/sdl2-build \
         -DSDL_VIVANTE=OFF && \
     cmake --build /build/sdl2-build -j$(nproc) && \
     cmake --install /build/sdl2-build --prefix $PREFIX && \
+    /sdk/add-license.sh SDL2 "SDL 2.26.1 (TrimUI's GE8300 source)" Zlib https://github.com/trimui/toolchain_sdk_smartpro \
+        $SDL_DIR/LICENSE.txt && \
     rm -rf /build/sdl2-build
 
 # ===== 10. mpv 0.36.0 (SDL2 gpu context + GLES) =====
@@ -334,6 +358,8 @@ RUN cp /build/context_sdl.c mpv/video/out/opengl/context_sdl.c && \
         -Djpeg=disabled \
         -Dmanpage-build=disabled && \
     meson compile -C builddir -j$(nproc) && \
-    meson install -C builddir
+    meson install -C builddir && \
+    /sdk/add-license.sh mpv "mpv 0.36.0, with the SDL2 GPU context (context_sdl.c)" \
+        "LGPL-2.1-or-later (built with -Dgpl=false)" https://mpv.io/ Copyright LICENSE.LGPL
 
 WORKDIR /app

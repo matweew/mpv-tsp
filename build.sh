@@ -11,7 +11,8 @@ echo "=== Collecting mpv binary and libraries ==="
 rm -rf dist
 mkdir -p dist/lib
 
-docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd)/dist":/dist mpv-trimui-builder /bin/bash -c '
+docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd)/dist":/dist \
+    -v "$(pwd)/collect-licenses.sh":/collect-licenses.sh:ro mpv-trimui-builder /bin/bash -c '
     set -e
     PREFIX=/sdk/prefix
 
@@ -54,6 +55,10 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$(pwd)/dist":/dist mpv-trimui-bui
     cp /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf /dist/fonts/ 2>/dev/null || \
     find /usr/share/fonts -name "*.ttf" | head -1 | xargs -I{} cp {} /dist/fonts/ 2>/dev/null || true
 
+    # Licenses: the license texts of every component in one file (collect-licenses.sh)
+    mkdir -p /dist/licenses
+    /collect-licenses.sh /dist/licenses
+
     echo "Done."
 '
 
@@ -63,6 +68,7 @@ cp -f mpv.conf dist/ 2>/dev/null || true
 cp -f syslibs/libfontconfig.so.1 dist/lib/
 cp -f syslibs/libexpat.so.1 dist/lib/
 chmod +x dist/launch.sh 2>/dev/null || true
+cp -f LICENSE dist/licenses/
 
 echo ""
 echo "=== Build complete ==="

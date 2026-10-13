@@ -41,13 +41,14 @@ dist/
   lib/                           FFmpeg, libass, SDL2, OpenSSL, libcedarc, ... (real files named by
                                  SONAME: the SD card is exFAT, without symlinks)
   fonts/, ca-certificates.crt    DejaVu Sans for OSD/subtitles, CA certificates for HTTPS
+  licenses/                      LICENSE, and third-party.txt with every component's license texts
 ```
 
 ## Running on the device
 
 **Ready-made package:** download `mpv-tsp-<version>.zip` from the
 [latest release](../../releases/latest) and unpack it into `Apps/` on the SD card: it contains the
-`mpv/` folder (the same as `dist/` below, plus the licenses).
+`mpv/` folder (the same as `dist/` below).
 
 **From your own build:** copy `dist/` to the SD card, e.g. as `/mnt/SDCARD/Apps/mpv/`.
 
@@ -76,6 +77,7 @@ isn't set up here); WPE Browser does that for you.
 | `cross.ini`, `toolchain*.cmake`, `pkg-config-wrapper.sh`, `pkgconfig/` | Meson/CMake/pkg-config cross setup; `.pc` files for the PowerVR EGL/GLES |
 | `syslibs/` | fontconfig and expat from the device's firmware (libass uses them) |
 | `launch.sh`, `mpv.conf` | Launcher and configuration copied into `dist/` |
+| `add-license.sh`, `collect-licenses.sh` | Keep each component's license files while it's built; collect them into `dist/licenses/third-party.txt` |
 
 ## Known limitations
 
@@ -97,6 +99,10 @@ isn't set up here); WPE Browser does that for you.
   binaries from that repository. The same library is part of TrimUI's firmware.
 - **This repository:** the build scripts are under the [MIT license](LICENSE); `cedar/cedardec.c` (part of
   FFmpeg) and `context_sdl.c` (part of mpv) are LGPL 2.1 or later, as stated in their headers.
+
+`dist/licenses/third-party.txt` has the license texts of every component, taken from the sources the
+`Dockerfile` builds (`add-license.sh`), plus Ubuntu's copyright files of the font and the CA list. It's a
+single file because the SD card is exFAT, where every small file takes 128 KB.
 
 Sources of everything built: the versions and URLs in the `Dockerfile` (FFmpeg 6.1, mpv v0.36.0, OpenSSL
 3.5.9, libcedarc commit `e68d4a7`, ...), plus the changes in this repository.
