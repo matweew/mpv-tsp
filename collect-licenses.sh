@@ -1,9 +1,9 @@
 #!/bin/bash
-# Write <out-dir>/third-party.txt: the license texts of everything dist/ bundles. Runs in the
-# image (build.sh): the components' files kept by add-license.sh in $PREFIX/share/licenses, plus
-# Ubuntu's copyright files of the DejaVu font and the CA list copied from the image. Identical
-# texts (ignoring whitespace) are written once. A single file: the SD card is exFAT, where every
-# small file takes 128 KB.
+# Write <out-dir>/third-party.zip (third-party.txt inside): the license texts of everything dist/
+# bundles. Runs in the image (build.sh): the components' files kept by add-license.sh in
+# $PREFIX/share/licenses, plus Ubuntu's copyright files of the DejaVu font and the CA list copied
+# from the image. Identical texts (ignoring whitespace) are written once. A single compressed file:
+# the SD card is exFAT, where every small file takes 128 KB.
 set -e
 OUT=$1
 L=$PREFIX/share/licenses
@@ -54,5 +54,14 @@ ubuntu=(fonts-dejavu-core ca-certificates)
         rule; echo "$name"; rule; echo
         text "$name" "$(readlink -f "$name")"
     done
-} > "$OUT/third-party.txt"
-echo "licenses: ${#components[@]} components, $(( $(stat -c %s "$OUT/third-party.txt") / 1024 )) KB"
+} > /tmp/third-party.txt
+# Compressed, with a fixed date: the same texts give the same zip
+python3 - "$OUT/third-party.zip" /tmp/third-party.txt <<'EOF'
+import sys, zipfile
+with zipfile.ZipFile(sys.argv[1], 'w') as z:
+    entry = zipfile.ZipInfo('third-party.txt', date_time=(2026, 1, 1, 0, 0, 0))
+    z.writestr(entry, open(sys.argv[2], 'rb').read(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+EOF
+echo "licenses: ${#components[@]} components, $(( $(stat -c %s /tmp/third-party.txt) / 1024 )) KB of texts," \
+     "$(( $(stat -c %s "$OUT/third-party.zip") / 1024 )) KB zipped"
+rm /tmp/third-party.txt
