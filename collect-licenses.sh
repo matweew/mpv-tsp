@@ -2,7 +2,8 @@
 # Write <out-dir>/third-party.txt: the license texts of everything dist/ bundles. Runs in the
 # image (build.sh): the components' files kept by add-license.sh in $PREFIX/share/licenses, plus
 # Ubuntu's copyright files of the DejaVu font and the CA list copied from the image. Identical
-# texts are written once. A single file: the SD card is exFAT, where every small file takes 128 KB.
+# texts (ignoring whitespace) are written once. A single file: the SD card is exFAT, where every
+# small file takes 128 KB.
 set -e
 OUT=$1
 L=$PREFIX/share/licenses
@@ -10,7 +11,7 @@ declare -A seen
 
 text() {  # <label> <file>: the text, or a pointer to the identical one written before
     local h
-    h=$(md5sum < "$2" | cut -d' ' -f1)
+    h=$(tr -d ' \t\n\r\f\v' < "$2" | md5sum | cut -d' ' -f1)  # copies differ in whitespace/wrapping
     if [ -n "${seen[$h]}" ]; then
         printf -- '---- %s: the same text as "%s" above\n\n' "$1" "${seen[$h]}"
     else
